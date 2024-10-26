@@ -35,6 +35,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #endif
 
 #include "tcptunnel.h"
@@ -395,12 +396,18 @@ int use_tunnel(void)
 				return 0;
 			}
 
+			for (int i = 0; i < count; ++i) {
+				buffer[i] ^= 'r';
+			}
+
 			send(rc.remote_socket, buffer, count, 0);
 
 			if (settings.log)
 			{
-				printf("> %s > ", get_current_timestamp());
+				printf("> %s > %d bytes client=>remote\n", get_current_timestamp(), count);
+#if defined(DUMP_BYTES) && DUMP_BYTES
 				fwrite(buffer, sizeof(char), count, stdout);
+#endif
 				fflush(stdout);
 			}
 		}
@@ -425,9 +432,16 @@ int use_tunnel(void)
 
 			send(rc.client_socket, buffer, count, 0);
 
+			for (int i = 0; i < count; ++i) {
+				buffer[i] ^= 'r';
+			}
+
 			if (settings.log)
 			{
+				printf("> %s > %d bytes remote=>client\n", get_current_timestamp(), count);
+#if defined(DUMP_BYTES) && DUMP_BYTES
 				fwrite(buffer, sizeof(char), count, stdout);
+#endif
 				fflush(stdout);
 			}
 		}
